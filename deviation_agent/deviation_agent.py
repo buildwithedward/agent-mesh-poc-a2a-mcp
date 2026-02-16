@@ -6,6 +6,12 @@ import numpy as np
 import io
 import urllib.parse
 import traceback
+import os
+
+# -------------------------------------------------
+# Disable joblib multiprocessing in Lambda
+# -------------------------------------------------
+os.environ["JOBLIB_MULTIPROCESSING"] = "0"
 
 # -------------------------------------------------
 # Configuration
@@ -25,12 +31,18 @@ EVENT_DETAIL_TYPE = "DeviationCompleted"
 s3 = boto3.client("s3")
 eventbridge = boto3.client("events")
 
-
+# -------------------------------------------------
+# Core Deviation Logic
+# -------------------------------------------------
 def deviation_agent(dataset_bucket, dataset_key):
+
+    print(f"Loading dataset from s3://{dataset_bucket}/{dataset_key}")
 
     batch_id = dataset_key.split("/")[-1].replace(".csv", "")
 
-    # Load model
+    # -------------------------------------------------
+    # Load Model Artifact
+    # -------------------------------------------------
     model_obj = s3.get_object(Bucket=MODEL_BUCKET, Key=MODEL_KEY)
     artifact = pickle.loads(model_obj["Body"].read())
 
@@ -39,17 +51,34 @@ def deviation_agent(dataset_bucket, dataset_key):
     feature_idx = artifact["feature_names"]
     threshold = float(artifact["threshold"])
 
-    # Load dataset
+    # Force single-thread execution
+    try:
+        model.set_params(n_jobs=1)
+    except Exception:
+        pass
+
+    print("Model loaded successfully")
+
+    # -------------------------------------------------
+    # Load Dataset
+    # -------------------------------------------------
     data_obj = s3.get_object(Bucket=dataset_bucket, Key=dataset_key)
     X = pd.read_csv(io.BytesIO(data_obj["Body"].read()), header=None)
 
     X = X.iloc[:, feature_idx]
     X = X.fillna(X.median())
+
     X_scaled = scaler.transform(X)
 
-    # Detect anomalies
+    print("Data preprocessing completed")
+
+    # -------------------------------------------------
+    # Detect Anomalies
+    # -------------------------------------------------
     scores = model.decision_function(X_scaled)
     anomalous_idxs = np.where(scores < threshold)[0]
+
+    print(f"Detected {len(anomalous_idxs)} anomalies")
 
     results = []
 
@@ -63,7 +92,9 @@ def deviation_agent(dataset_bucket, dataset_key):
             "decision": "ANOMALY"
         })
 
-    # Save output
+    # -------------------------------------------------
+    # Save Output to S3
+    # -------------------------------------------------
     deviation_key = f"{OUTPUT_PREFIX}{batch_id}.json"
 
     s3.put_object(
@@ -73,7 +104,11 @@ def deviation_agent(dataset_bucket, dataset_key):
         ContentType="application/json"
     )
 
-    # Emit EventBridge event
+    print(f"Deviation output saved to s3://{OUTPUT_BUCKET}/{deviation_key}")
+
+    # -------------------------------------------------
+    # Emit EventBridge Event
+    # -------------------------------------------------
     eventbridge.put_events(
         Entries=[
             {
@@ -85,19 +120,28 @@ def deviation_agent(dataset_bucket, dataset_key):
                     "model_bucket": MODEL_BUCKET,
                     "model_key": MODEL_KEY,
                     "deviation_bucket": OUTPUT_BUCKET,
-                    "deviation_key": deviation_key
+                    "deviation_key": deviation_key,
+                    "status": "SUCCESS"
                 }),
                 "EventBusName": "default"
             }
         ]
     )
 
+    print("EventBridge event emitted successfully")
+
     return deviation_key
 
 
+# -------------------------------------------------
+# Lambda Entry Point
+# -------------------------------------------------
 def lambda_handler(event, context):
 
     try:
+        print("Received event:")
+        print(json.dumps(event, indent=2))
+
         record = event["Records"][0]
 
         dataset_bucket = record["s3"]["bucket"]["name"]
@@ -107,7 +151,9 @@ def lambda_handler(event, context):
 
         print(f"Triggered for: s3://{dataset_bucket}/{dataset_key}")
 
+        # Prevent infinite loop (ignore own outputs)
         if dataset_key.startswith(OUTPUT_PREFIX):
+            print("Skipping output file trigger")
             return {"status": "SKIPPED_OUTPUT_FILE"}
 
         deviation_key = deviation_agent(dataset_bucket, dataset_key)
@@ -118,6 +164,11 @@ def lambda_handler(event, context):
         }
 
     except Exception as e:
+        print("Error occurred:")
         print(str(e))
         print(traceback.format_exc())
-        return {"status": "FAILED", "error": str(e)}
+
+        return {
+            "status": "FAILED",
+            "error": str(e)
+        }
