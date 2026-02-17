@@ -3,7 +3,6 @@ import boto3
 import traceback
 from service import run_rca
 
-eventbridge = boto3.client("events")
 s3 = boto3.client("s3")
 
 # Hardcoded RCA output bucket
@@ -11,7 +10,11 @@ RCA_BUCKET = "ag-agent-mesh"
 RCA_FOLDER = "RCA_Agent_Output"
 STATUS_FOLDER = "status"
 
+# -------------------------------------------------
+# Write Status File to S3
+# -------------------------------------------------
 def write_status(batch_id, status, message=None, output_path=None):
+
     status_key = f"{STATUS_FOLDER}/{batch_id}.json"
 
     body = {
@@ -28,6 +31,9 @@ def write_status(batch_id, status, message=None, output_path=None):
         ContentType="application/json"
     )
 
+# -------------------------------------------------
+# Lambda Entry Point
+# -------------------------------------------------
 def lambda_handler(event, context):
 
     detail = event["detail"]
@@ -47,10 +53,14 @@ def lambda_handler(event, context):
     print(f"Processing batch: {batch_id}")
 
     try:
-        # Step 1: Write RUNNING status
+        # -------------------------------------------------
+        # Step 1: Mark RUNNING
+        # -------------------------------------------------
         write_status(batch_id, "RUNNING")
 
-        # Step 2: Run RCA
+        # -------------------------------------------------
+        # Step 2: Run RCA Logic
+        # -------------------------------------------------
         result = run_rca(
             dataset_bucket,
             dataset_key,
@@ -60,34 +70,25 @@ def lambda_handler(event, context):
             deviation_key
         )
 
+        # -------------------------------------------------
+        # Step 3: Mark SUCCESS
+        # -------------------------------------------------
         rca_key = f"{RCA_FOLDER}/{batch_id}.json"
         output_path = f"s3://{RCA_BUCKET}/{rca_key}"
 
-        # Step 3: Write SUCCESS status
         write_status(
             batch_id,
             "SUCCESS",
             output_path=output_path
         )
 
-        # Step 4: Publish success event to CAPA
-        eventbridge.put_events(
-            Entries=[
-                {
-                    "Source": "agilsium.rca.agent",
-                    "DetailType": "RCACompleted",
-                    "Detail": json.dumps({
-                        "batch_id": batch_id,
-                        "rca_bucket": RCA_BUCKET,
-                        "rca_key": rca_key,
-                        "status": "SUCCESS"
-                    }),
-                    "EventBusName": "default"
-                }
-            ]
-        )
+        print("RCA completed successfully")
 
-        return {"status": "SUCCESS"}
+        return {
+            "status": "SUCCESS",
+            "batch_id": batch_id,
+            "rca_output_s3_uri": output_path
+        }
 
     except Exception as e:
 
@@ -99,25 +100,17 @@ def lambda_handler(event, context):
         print(stack_trace)
         print(f"Request ID: {context.aws_request_id}")
 
+        # -------------------------------------------------
+        # Mark FAILED
+        # -------------------------------------------------
         write_status(
             batch_id,
             "FAILED",
             message=error_message
         )
 
-        eventbridge.put_events(
-            Entries=[
-                {
-                    "Source": "agilsium.rca.agent",
-                    "DetailType": "RCAFailed",
-                    "Detail": json.dumps({
-                        "batch_id": batch_id,
-                        "status": "FAILED",
-                        "error": error_message
-                    }),
-                    "EventBusName": "default"
-                }
-            ]
-        )
-
-        raise e
+        return {
+            "status": "FAILED",
+            "batch_id": batch_id,
+            "error": error_message
+        }
