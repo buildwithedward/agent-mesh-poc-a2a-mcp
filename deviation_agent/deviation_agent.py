@@ -22,14 +22,10 @@ MODEL_KEY = "Isolation_Forest_Model/isolation_forest_secom.pkl"
 OUTPUT_BUCKET = "ag-agent-mesh"
 OUTPUT_PREFIX = "Deviation_Agent_Output/"
 
-EVENT_SOURCE = "agent.deviation"
-EVENT_DETAIL_TYPE = "DeviationCompleted"
-
 # -------------------------------------------------
-# AWS Clients
+# AWS Client
 # -------------------------------------------------
 s3 = boto3.client("s3")
-eventbridge = boto3.client("events")
 
 # -------------------------------------------------
 # Core Deviation Logic
@@ -51,7 +47,6 @@ def deviation_agent(dataset_bucket, dataset_key):
     feature_idx = artifact["feature_names"]
     threshold = float(artifact["threshold"])
 
-    # Force single-thread execution
     try:
         model.set_params(n_jobs=1)
     except Exception:
@@ -106,56 +101,39 @@ def deviation_agent(dataset_bucket, dataset_key):
 
     print(f"Deviation output saved to s3://{OUTPUT_BUCKET}/{deviation_key}")
 
-    # -------------------------------------------------
-    # Emit EventBridge Event
-    # -------------------------------------------------
-    eventbridge.put_events(
-        Entries=[
-            {
-                "Source": EVENT_SOURCE,
-                "DetailType": EVENT_DETAIL_TYPE,
-                "Detail": json.dumps({
-                    "dataset_bucket": dataset_bucket,
-                    "dataset_key": dataset_key,
-                    "model_bucket": MODEL_BUCKET,
-                    "model_key": MODEL_KEY,
-                    "deviation_bucket": OUTPUT_BUCKET,
-                    "deviation_key": deviation_key,
-                    "status": "SUCCESS"
-                }),
-                "EventBusName": "default"
-            }
-        ]
-    )
-
-    print("EventBridge event emitted successfully")
-
     return deviation_key
 
 
 # -------------------------------------------------
-# Lambda Entry Point
+# Lambda Entry Point (EventBridge Only)
 # -------------------------------------------------
 def lambda_handler(event, context):
 
     try:
-        print("Received event:")
+        print("Received EventBridge event:")
         print(json.dumps(event, indent=2))
 
-        record = event["Records"][0]
+        # -----------------------------------------
+        # Expecting EventBridge Input Transformer
+        # -----------------------------------------
+        if "bucket_name" not in event or "object_key" not in event:
+            raise ValueError("Invalid EventBridge payload structure")
 
-        dataset_bucket = record["s3"]["bucket"]["name"]
-        dataset_key = urllib.parse.unquote_plus(
-            record["s3"]["object"]["key"]
-        )
+        dataset_bucket = event["bucket_name"]
+        dataset_key = urllib.parse.unquote_plus(event["object_key"])
 
         print(f"Triggered for: s3://{dataset_bucket}/{dataset_key}")
 
-        # Prevent infinite loop (ignore own outputs)
+        # -----------------------------------------
+        # Prevent Infinite Loop
+        # -----------------------------------------
         if dataset_key.startswith(OUTPUT_PREFIX):
             print("Skipping output file trigger")
             return {"status": "SKIPPED_OUTPUT_FILE"}
 
+        # -----------------------------------------
+        # Run Deviation Agent
+        # -----------------------------------------
         deviation_key = deviation_agent(dataset_bucket, dataset_key)
 
         return {
