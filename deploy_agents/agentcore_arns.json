@@ -1,0 +1,26 @@
+[
+  {
+    "name": "deviation_agent",
+    "agentRuntimeArn": "arn:aws:bedrock-agentcore:us-west-2:495688866359:runtime/deviation_agent-sYVlkgCOUk",
+    "agentRuntimeEndpoint": "",
+    "status": "CREATING"
+  },
+  {
+    "name": "rca_agent",
+    "agentRuntimeArn": "arn:aws:bedrock-agentcore:us-west-2:495688866359:runtime/rca_agent-ch55s730El",
+    "agentRuntimeEndpoint": "",
+    "status": "CREATING"
+  },
+  {
+    "name": "capa_agent",
+    "agentRuntimeArn": "arn:aws:bedrock-agentcore:us-west-2:495688866359:runtime/capa_agent-E4QA65Dyf2",
+    "agentRuntimeEndpoint": "",
+    "status": "CREATING"
+  },
+  {
+    "name": "compliance_agent",
+    "agentRuntimeArn": "arn:aws:bedrock-agentcore:us-west-2:495688866359:runtime/compliance_agent-JbsQfp21dA",
+    "agentRuntimeEndpoint": "",
+    "status": "CREATING"
+  }
+]

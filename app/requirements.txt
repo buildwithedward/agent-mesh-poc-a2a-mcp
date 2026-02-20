@@ -1,0 +1,4 @@
+streamlit
+a2a-sdk
+boto3
+python-dotenv

@@ -1,9 +1,10 @@
-
 .DS_Store
 .env
 __pycache__/
 *.py[cod]
+*.pyc
 venv/
+.venv/
 .vscode/
-EOF
-
+.python-version
+*.pkg

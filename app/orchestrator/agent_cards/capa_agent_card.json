@@ -1,0 +1,16 @@
+{
+  "name": "capa_agent",
+  "description": "Selects Corrective and Preventive Actions (CAPAs) for each anomalous sensor identified in the RCA output. Queries a Qdrant vector database for matching CAPAs based on severity level (Large/Moderate/Normal). Must be called after rca_agent.",
+  "version": "1.0.0",
+  "url": "arn:aws:bedrock-agentcore:us-west-2:495688866359:runtime/capa_agent-E4QA65Dyf2",
+  "skills": [
+    {
+      "id": "capa_selection",
+      "name": "run_capa_selection",
+      "description": "Select Corrective and Preventive Actions (CAPAs) for each root cause sensor in the RCA output using probabilistic selection from a Qdrant knowledge base. Requires the RCA output S3 bucket and key. Returns a CAPA output S3 URI with sensor-level corrective and preventive actions. Call this third, after rca_agent.",
+      "tags": ["capa", "corrective", "preventive", "actions", "qdrant", "third-step"],
+      "inputModes": ["application/json"],
+      "outputModes": ["application/json"]
+    }
+  ]
+}

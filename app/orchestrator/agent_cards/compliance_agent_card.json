@@ -1,0 +1,16 @@
+{
+  "name": "compliance_agent",
+  "description": "Evaluates regulatory compliance of the selected CAPAs against severity-based rules and generates human-readable summaries using AWS Bedrock (Meta Llama 3.1 8B). Must be called last, after capa_agent.",
+  "version": "1.0.0",
+  "url": "arn:aws:bedrock-agentcore:us-west-2:495688866359:runtime/compliance_agent-JbsQfp21dA",
+  "skills": [
+    {
+      "id": "compliance_evaluation",
+      "name": "run_compliance_evaluation",
+      "description": "Evaluate regulatory compliance of CAPA actions against deterministic severity rules (PASS/FAIL) and generate concise summaries of preventive and corrective actions using AWS Bedrock LLM. Requires the CAPA output S3 bucket and key. Returns a compliance output S3 URI with per-sensor PASS/FAIL status and recommendations. Call this last, after capa_agent.",
+      "tags": ["compliance", "evaluation", "regulatory", "bedrock", "llm", "final-step", "last-step"],
+      "inputModes": ["application/json"],
+      "outputModes": ["application/json"]
+    }
+  ]
+}

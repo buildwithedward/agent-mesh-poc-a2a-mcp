@@ -1,0 +1,16 @@
+{
+  "name": "deviation_agent",
+  "description": "Detects anomalies in SECOM manufacturing datasets using a pre-trained Isolation Forest model stored in S3. Must always be the first agent called in the pipeline.",
+  "version": "1.0.0",
+  "url": "arn:aws:bedrock-agentcore:us-west-2:495688866359:runtime/deviation_agent-sYVlkgCOUk",
+  "skills": [
+    {
+      "id": "anomaly_detection",
+      "name": "run_deviation_detection",
+      "description": "Run Isolation Forest anomaly detection on a SECOM dataset stored in S3. Takes a dataset S3 bucket and key, returns a deviation output S3 URI with anomalous row indices and scores. This is always the entry point of the pipeline — call this first before any other agent.",
+      "tags": ["anomaly", "detection", "isolation-forest", "secom", "first-step", "entry-point"],
+      "inputModes": ["application/json"],
+      "outputModes": ["application/json"]
+    }
+  ]
+}

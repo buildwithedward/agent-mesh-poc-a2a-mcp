@@ -1,0 +1,16 @@
+{
+  "name": "rca_agent",
+  "description": "Performs Root Cause Analysis (RCA) on anomalous rows identified by the Deviation Agent. Uses SHAP explainability on the Isolation Forest model to identify the top contributing sensors and categorises deviations using z-scores. Must be called after deviation_agent.",
+  "version": "1.0.0",
+  "url": "arn:aws:bedrock-agentcore:us-west-2:495688866359:runtime/rca_agent-ch55s730El",
+  "skills": [
+    {
+      "id": "root_cause_analysis",
+      "name": "run_rca_analysis",
+      "description": "Run SHAP-based Root Cause Analysis on anomalous rows identified in the deviation output. Requires the original dataset, the Isolation Forest model, and the deviation agent output — all as S3 paths. Returns an RCA output S3 URI with per-row sensor contributions and z-score categories. Call this second, after deviation_agent.",
+      "tags": ["rca", "root-cause", "shap", "explainability", "second-step"],
+      "inputModes": ["application/json"],
+      "outputModes": ["application/json"]
+    }
+  ]
+}
