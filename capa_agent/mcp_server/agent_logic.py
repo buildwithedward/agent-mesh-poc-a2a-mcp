@@ -111,11 +111,11 @@ def capa_agent(bucket: str, key: str) -> dict:
             # Probabilistic CAPA Selection
             # ---------------------------------------------------
             if severity_type == "L":
-                num_to_pick = random.randint(0, 2)
+                num_to_pick = random.randint(1, 2)
             elif severity_type == "M":
-                num_to_pick = random.randint(0, 1)
+                num_to_pick = random.randint(1, 1)
             else:  # N
-                num_to_pick = random.randint(0, 1)
+                num_to_pick = random.randint(1, 1)
 
             if num_to_pick > 0 and matching_capas:
                 selected = random.sample(
