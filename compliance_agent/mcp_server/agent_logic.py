@@ -194,7 +194,7 @@ Return ONLY the JSON object.
             "sensor": sensor["sensor"],
             "severity_classification": severity,
             "compliance_status": compliance_status,
-            "failure_reason": result.get("failure_reason", ""),
+            "failure_reason": result.get("failure_reason", "") if compliance_status == "FAIL" else "",
             "recommendation": result.get("recommendation", "")
         }
 
