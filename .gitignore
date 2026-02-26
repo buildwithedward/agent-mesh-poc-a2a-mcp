@@ -8,3 +8,8 @@ venv/
 .vscode/
 .python-version
 *.pkg
+.idea/
+*.iml
+*.log
+*.bak
+*.tmp

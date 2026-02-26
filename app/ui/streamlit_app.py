@@ -18,6 +18,7 @@ import sys
 import os
 import json
 import time
+import base64
 import glob as globmod
 import boto3
 import streamlit as st
@@ -39,6 +40,7 @@ S3_BUCKET = os.environ.get("S3_BUCKET", "ag-agent-mesh")
 AWS_REGION = os.environ.get("AWS_REGION", "us-west-2")
 INPUT_PREFIX = "input"
 _CARDS_DIR = os.path.join(os.path.dirname(__file__), "..", "orchestrator", "agent_cards")
+_LOGO_DIR = os.path.join(os.path.dirname(__file__), "logo")
 
 
 # ─────────────────────────────────────────────
@@ -95,6 +97,20 @@ def load_agent_cards() -> list[dict]:
     return cards
 
 
+def get_logo_base64(filename: str) -> str | None:
+    """Read a logo file and return its base64-encoded data URI."""
+    filepath = os.path.join(_LOGO_DIR, filename)
+    if not os.path.exists(filepath):
+        return None
+    ext = os.path.splitext(filename)[1].lower()
+    mime = {"png": "image/png", "jpg": "image/jpeg", "jpeg": "image/jpeg"}.get(
+        ext.lstrip("."), "image/png"
+    )
+    with open(filepath, "rb") as f:
+        encoded = base64.b64encode(f.read()).decode()
+    return f"data:{mime};base64,{encoded}"
+
+
 # ─────────────────────────────────────────────
 # Page Config
 # ─────────────────────────────────────────────
@@ -104,7 +120,33 @@ st.set_page_config(
     layout="wide"
 )
 
-st.title("🔬 SECOM Anomaly Analysis — Agent Mesh")
+# ─────────────────────────────────────────────
+# Logos + Title Header
+# ─────────────────────────────────────────────
+_logo_left = get_logo_base64("Agilisium.png")
+_logo_right = get_logo_base64("phlow.jpg")
+
+if _logo_left and _logo_right:
+    st.markdown(
+        f"""
+        <div style="display:flex; align-items:center; justify-content:space-between; padding:0 0 10px 0;">
+            <img src="{_logo_left}" style="height:60px;" alt="Agilisium Logo">
+            <h2 style="margin:0; text-align:center;">🔬 SECOM Anomaly Analysis — Agent Mesh</h2>
+            <img src="{_logo_right}" style="height:60px;" alt="Phlow Logo">
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+elif _logo_left:
+    st.markdown(
+        f'<div style="display:flex; align-items:center; gap:16px; padding-bottom:10px;">'
+        f'<img src="{_logo_left}" style="height:60px;" alt="Logo">'
+        f'<h2 style="margin:0;">🔬 SECOM Anomaly Analysis — Agent Mesh</h2></div>',
+        unsafe_allow_html=True,
+    )
+else:
+    st.title("🔬 SECOM Anomaly Analysis — Agent Mesh")
+
 st.caption(
     "Upload a SECOM manufacturing dataset. The A2A orchestrator will dynamically "
     "discover agents, plan the pipeline via LLM, and execute each step via MCP."
