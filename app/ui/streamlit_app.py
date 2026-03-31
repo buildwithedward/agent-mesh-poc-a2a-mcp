@@ -124,20 +124,8 @@ st.set_page_config(
 # Logos + Title Header
 # ─────────────────────────────────────────────
 _logo_left = get_logo_base64("Agilisium.png")
-_logo_right = get_logo_base64("phlow.jpg")
 
-if _logo_left and _logo_right:
-    st.markdown(
-        f"""
-        <div style="display:flex; align-items:center; justify-content:space-between; padding:0 0 10px 0;">
-            <img src="{_logo_left}" style="height:60px;" alt="Agilisium Logo">
-            <h2 style="margin:0; text-align:center;">🔬 SECOM Anomaly Analysis — Agent Mesh</h2>
-            <img src="{_logo_right}" style="height:60px;" alt="Phlow Logo">
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-elif _logo_left:
+if _logo_left:
     st.markdown(
         f'<div style="display:flex; align-items:center; gap:16px; padding-bottom:10px;">'
         f'<img src="{_logo_left}" style="height:60px;" alt="Logo">'
